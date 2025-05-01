@@ -27,12 +27,13 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next(); //if password is not modified, move to next middleware
 
-  this.password = await bcrypt.hash(this.passsword, 10); //hashing password with bcrypt
+  this.password = await bcrypt.hash(this.password, 10); //hashing password with bcrypt
+
   next(); //move to next middleware
 });
 
 //compare password with hashed password in DB
-userSchema.methdods.isPasswordCorrect = async function (password) {
+userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password); //compare password with hashed password in DB
 };
 
@@ -44,7 +45,7 @@ userSchema.methods.generateAuthToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET, //secret key
     {
-      expirresIn: process.env.REFRESH_TOKEN_EXPIRY, //token will expire in 1 hour
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY, //token will expire in 1 hour
     }
   );
 };
