@@ -27,14 +27,16 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next(); //if password is not modified, move to next middleware
 
-  this.password = await bcrypt.hash(this.password, 10); //hashing password with bcrypt
+  this.password = await bcrypt.hash(this.password, 10);
 
   next(); //move to next middleware
 });
 
 //compare password with hashed password in DB
-userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password);
+userSchema.methods.comparePassword = async function (userPassword) {
+  console.log("userPassword", userPassword);  
+  console.log("this.password", this.password);
+  return await bcrypt.compare(userPassword, this.password);
 };
 
 userSchema.methods.generateAuthToken = function () {
@@ -42,6 +44,8 @@ userSchema.methods.generateAuthToken = function () {
     {
       //payload
       _id: this._id,
+      email: this.email,
+      username: this.username,
     },
     process.env.ACCESS_TOKEN_SECRET, //secret key
     {

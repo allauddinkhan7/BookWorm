@@ -13,10 +13,10 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiError(
-      500,
-      "something went wrong while generateAccessAndRefreshTokens"
-    );
+   return {
+      message: "Error generating tokens",
+      error: error.message,
+    };  
   }
 };
 
@@ -70,26 +70,23 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { username, email, pass } = req.body;
+    const { email, password } = req.body;
     if (!email) {
       return res.status(400).json({ message: "Email and password required" });
     }
 
-    const isUserExist = await User.findOne({
-      $or: [
-        //give values to check
-        { username },
-        { email },
-      ],
-    });
+    const isUserExist = await User.findOne({email});
 
     if (!isUserExist) {
       return res.status(400).json({ message: "user not found" });
     }
 
-    console.log("Comparing:", pass, "with hash:", isUserExist.password);
+ 
+    console.log("isUserExist", isUserExist);
+    console.log("password", password);  
+    console.log("isUserExist.password", isUserExist.password);
     
-    const isPasswordValid = await isUserExist.isPasswordCorrect(pass);
+    const isPasswordValid = await isUserExist.comparePassword(password);
 
     
     if (!isPasswordValid) {
