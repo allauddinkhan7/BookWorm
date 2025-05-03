@@ -4,28 +4,30 @@ import { User } from "../models/user.models.js";
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const userForToken = await User.findById(userId);
-    const accessToken = userForToken.generateAccessToken();
+    const accessToken = userForToken.generateAuthToken();
     const refreshToken = userForToken.generateRefreshToken();
 
     //save refresh token
     userForToken.refreshToken = refreshToken;
-    await userForToken.save({ validateBeforeSave: true });
+    await userForToken.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
   } catch (error) {
-    console.error("Error generating tokens:", error);
-    throw new Error("Token generation failed");
+    throw new ApiError(
+      500,
+      "something went wrong while generateAccessAndRefreshTokens"
+    );
   }
 };
 
 const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    
+
     if ([username, email, password].some((field) => field?.trim() === "")) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    
+
     const isUserExist = await User.findOne({
       $or: [{ username }, { email }],
     });
@@ -33,23 +35,22 @@ const registerUser = async (req, res) => {
     if (isUserExist) {
       return res.status(409).json({ message: "User already exists" });
     }
-    
+
     const profilePicture = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
-    
-    // Hash the password (only if no pre-save hook exists)
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
+
+  
+
     const newUser = await User.create({
       username,
       email,
-      password: hashedPassword,
+      password,
       profilePicture,
     });
-    
+
     const createdUser = await User.findById(newUser._id).select(
       "-password -refreshToken"
     );
-    
+
     if (!createdUser) {
       return res.status(500).json({ msg: "Error creating user" });
     }
@@ -69,29 +70,38 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, email, pass } = req.body;
     if (!email) {
       return res.status(400).json({ message: "Email and password required" });
     }
 
     const isUserExist = await User.findOne({
-      $or: [{ email }],
+      $or: [
+        //give values to check
+        { username },
+        { email },
+      ],
     });
 
     if (!isUserExist) {
       return res.status(400).json({ message: "user not found" });
     }
 
-    const isPasswordCorrect = await isUserExist.isPasswordCorrect(password);
+    console.log("Comparing:", pass, "with hash:", isUserExist.password);
+    
+    const isPasswordValid = await isUserExist.isPasswordCorrect(pass);
 
-    if (!isPasswordCorrect) {
-      return res.status(400).json({ message: "Invalid credentials" });
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid credentials" }); // 401 for unauthorized
     }
 
     //generate access token and refresh token
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
       isUserExist._id
     );
+
+    //now we will send the access token and refresh token in cookies
     const loggedInUser = await User.findById(isUserExist._id).select(
       "-password -refreshToken"
     );
@@ -119,4 +129,4 @@ const loginUser = async (req, res) => {
     });
   }
 };
-export {registerUser, loginUser}; 
+export { registerUser, loginUser };

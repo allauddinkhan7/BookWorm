@@ -34,7 +34,7 @@ userSchema.pre("save", async function (next) {
 
 //compare password with hashed password in DB
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password); //compare password with hashed password in DB
+  return await bcrypt.compare(password, this.password);
 };
 
 userSchema.methods.generateAuthToken = function () {
