@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createBook, getBooks } from "../controllers/book.controllers.js";
+import { createBook, deleteBook, getBooks, getRecommendedBooks } from "../controllers/book.controllers.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 const router = Router();
 
@@ -13,7 +13,11 @@ router.route("/").post(verifyJwt,createBook);
 //read
 router.route("/").get(verifyJwt, getBooks);
 
+//delete
+router.route("/:id").delete(verifyJwt, deleteBook);
 
+//get recommended books by the  logged in user
+router.route("/user").get(verifyJwt, getRecommendedBooks);
 
 
 
